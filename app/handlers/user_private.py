@@ -1,4 +1,7 @@
-from aiogram import types, Router, F
+import openpyxl
+
+from aiogram import types, Router, F, Bot
+from aiogram.enums import ContentType
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -6,7 +9,6 @@ from aiogram.types import CallbackQuery
 
 from app.filters.filters import ChatTypeFilter
 from app.keyboards import reply, inline
-
 
 # Список разрешенных типов чатов.
 CHAT_TYPES = [
@@ -21,11 +23,35 @@ user_private_router.message.filter(
 
 FORM_BUTTON = 'Заполнить анкету'
 ABOUT_BUTTON = 'О нас'
+FILE_BUTTON = 'Отправить файл'
 
 START_KEYBOARD = reply.get_reply_keyboard(
-    FORM_BUTTON, ABOUT_BUTTON,
+    FORM_BUTTON, ABOUT_BUTTON, FILE_BUTTON,
     placeholder='бла бла бла'
 )
+
+# MDS = dict()
+#
+# @user_private_router.message(F.text)
+# async def echo(message: types.Message):
+#     MDS['md'] = message.md_text
+#     print(message.md_text)
+#     await message.answer(
+#         text=(
+#             f'готово'
+#         ),
+#     )
+
+# С помощью готовой системы фильтрации хендлер
+# будет реагировать на /start нужным образом.
+# @user_private_router.message(F.text)
+# async def echo(message: types.Message):
+#     await message.answer(
+#         text=(
+#             MDS[message.text]
+#         ),
+#         parse_mode=ParseMode.MARKDOWN_V2
+#     )
 
 
 # С помощью готовой системы фильтрации хендлер
@@ -52,6 +78,40 @@ async def about_cmd(message: types.Message):
     # пока не передать новую или не удалить.
     # Чтобы удалить клаву, понадобится такой аргумент:
     # reply_markup=ReplyKeyboardRemove()
+    await message.answer(
+        text=text
+    )
+
+
+@user_private_router.message(F.text == FILE_BUTTON)
+async def send_file(message: types.Message):
+    text = (
+        'Отправьте xlsx файл'
+    )
+    # Если до этого была клавиатура, она так и останется,
+    # пока не передать новую или не удалить.
+    # Чтобы удалить клаву, понадобится такой аргумент:
+    # reply_markup=ReplyKeyboardRemove()
+    await message.answer(
+        text=text
+    )
+
+
+@user_private_router.message(F.content_type == ContentType.DOCUMENT)
+async def get_file(message: types.Message, bot: Bot):
+    text = (
+        f'Файл "{message.document.file_name}" получен.'
+    )
+
+    file = await Bot.download(bot, message.document.file_id)
+    file = openpyxl.load_workbook(file)
+    worksheet = file.active
+    for row in range(0, worksheet.max_row):
+        for col in worksheet.iter_cols(0, worksheet.max_column):
+            col_value = col[row].value
+            if col_value:
+                print(col_value, end="\t\t")
+        print('')
     await message.answer(
         text=text
     )

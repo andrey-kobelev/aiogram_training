@@ -1,4 +1,4 @@
-from .user_private import user_private_router
+from app.handlers.user_private import user_private_router
 
 
 ROUTERS = [
